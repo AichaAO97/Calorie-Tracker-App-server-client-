@@ -44,7 +44,8 @@ const setupDb = () => {
 
 setupDb();
 
-const domainWhiteList = JSON.parse(process.env.DOMAIN_WHITELIST);
+// const domainWhiteList = JSON.parse(process.env.DOMAIN_WHITELIST);
+const domainWhiteList = "http://localhost:5173";
 console.log(domainWhiteList);
 
 // Allow receiving requests from React server
@@ -61,9 +62,12 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Server start and endpoints
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+app.listen(3000, () => {
+  console.log(`Server running on port 3000`);
 });
+// app.listen(process.env.PORT, () => {
+//   console.log(`Server running on port ${process.env.PORT}`);
+// });
 
 /**
  * List API; lists all stored records.
