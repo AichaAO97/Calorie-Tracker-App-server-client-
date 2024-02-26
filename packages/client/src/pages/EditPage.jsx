@@ -7,9 +7,10 @@ import {
   useCallback,
   useMemo,
 } from 'react';
-import styles from './Form.module.css';
+import styles from './EditPage.module.css';
 import { AppContext } from '@root/AppContext';
 import { FormInput, Button } from '@common';
+import { useNavigate } from 'react-router-dom';
 
 const DEFAULT_VALUE = {
   meal: true,
@@ -47,21 +48,43 @@ function formReducer(state, action) {
   }
 }
 
-export function Form(props) {
-  const {
-    currentDate,
-    isValidDate,
-    currentDateStr,
-    setCurrentDate,
-    totalCalories,
-  } = useContext(AppContext);
+export function EditPage() {
+  const { isValidDate, currentDateStr, setCurrentDate, totalCalories } =
+    useContext(AppContext);
   const [formState, dispatchFn] = useReducer(formReducer, DEFAULT_VALUE);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   const contentRef = useRef();
   const caloriesRef = useRef();
   const mealRef = useRef();
 
   const { content: isContentValid, calories: isCaloriesValid } = formState;
+
+  async function save(record) {
+    setError(null);
+    try {
+      const response = await fetch('http://localhost:3000/records', {
+        method: 'POST',
+        body: JSON.stringify({
+          r_date: record.date,
+          r_meal: record.meal,
+          r_cal: record.calories,
+          r_food: record.content,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw Error('Failed to create new record');
+      }
+      navigate('..');
+    } catch (error) {
+      setError(error.message);
+    }
+  }
 
   const isFormValid = useMemo(() => {
     return isValidDate && isContentValid && isCaloriesValid;
@@ -101,7 +124,7 @@ export function Form(props) {
     event.preventDefault();
     // {date: {value: '01-03-2021', valid: false}, meal: ...}
     // {date: '01-03-2021', meal: 'Breakfast', ...}
-    props.onFormSubmit({
+    save({
       date: currentDateStr,
       meal: mealRef.current.value,
       content: contentRef.current.value,
@@ -110,12 +133,12 @@ export function Form(props) {
   };
 
   const onCancelHandler = useCallback(() => {
-    props.onCancel();
+    navigate('..');
   }, []);
 
   return (
     <form className={styles.form} onSubmit={onSubmitHandler}>
-      <p className={styles.warning}>You spent {totalCalories} calories</p>
+      {error && <p className={styles.warning}>Request failed, {error} </p>}
       <FormInput
         type="date"
         value={currentDateStr}

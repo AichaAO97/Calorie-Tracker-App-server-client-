@@ -1,93 +1,52 @@
-import { useEffect, useState } from "react";
-import Modal from "react-modal";
-import { ListSection } from "@components/records";
-import { Form } from "@components/edit";
-import styles from "./TrackPage.module.css";
-
-const LOCAL_STORAGE_KEY = "calorieRecords";
+import { RecordList } from '@components/records';
+import styles from './TrackPage.module.css';
+import { useLoadData } from '@root/utils/hooks';
+import { Link } from 'react-router-dom';
+import { TextContent } from '@root/common';
+import { useContext } from 'react';
+import { AppContext } from '@root/AppContext';
 
 export function TrackPage() {
-  const [records, setRecords] = useState();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { currentDateStr, setCurrentDate } = useContext(AppContext);
+  const [records, loading, error, refreshData] = useLoadData(
+    `http://localhost:3000/records?date=${currentDateStr}`
+  );
 
-  function save() {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(records));
+  const dateChangeHandler = (event) => {
+    setCurrentDate(event.target.value);
+  };
+
+  let content = <RecordList records={records} refresh={refreshData} />;
+
+  if (error) {
+    content = <TextContent value={error} />;
   }
 
-  function loadRecords() {
-    const storageRecords = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storageRecords != null && storageRecords !== "undefined") {
-      setRecords(
-        JSON.parse(storageRecords).map((record) => ({
-          ...record,
-          date: new Date(record.date),
-          calories: Number(record.calories),
-        }))
-      );
-    } else {
-      setRecords([]);
-    }
+  if (loading) {
+    content = <TextContent value="Loading ....." />;
   }
-
-  useEffect(() => {
-    if (!records) {
-      loadRecords();
-    } else {
-      save();
-    }
-  }, [records]);
-
-  const modalStyles = {
-    content: {
-      top: "50%",
-      left: "50%",
-      right: "auto",
-      bottom: "auto",
-      marginRight: "-50%",
-      transform: "translate(-50%, -50%)",
-      border: "none", // Remove the border
-      padding: "0px", // Remove padding
-      borderRadius: "var(--theme-border-radius-smooth)",
-    },
-    overlay: {
-      backgroundColor: "rgba(0,0,0,0.5)",
-    },
-  };
-
-  const handleOpenModal = () => {
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
-
-  const formSubmitHandler = (record) => {
-    const formattedRecord = {
-      ...record,
-      date: record.date,
-      id: crypto.randomUUID(),
-    };
-    setRecords((prevRecords) => [formattedRecord, ...prevRecords]);
-
-    handleCloseModal();
-  };
 
   return (
-    <div className="App">
+    <div>
       <h1 className={styles.title}>Calorie Tracker</h1>
-      <Modal
-        isOpen={isModalOpen}
-        onRequestClose={handleCloseModal}
-        contentLabel="Modal"
-        style={modalStyles}
-      >
-        <Form onFormSubmit={formSubmitHandler} onCancel={handleCloseModal} />
-      </Modal>
-      {records && <ListSection allRecords={records} />}
-      <button className={styles["open-modal-btn"]} onClick={handleOpenModal}>
-        Track food
-      </button>
+      <div className={styles['list-header-wrapper']}>
+        <div className={styles['list-peacker']}>
+          <label className={styles['list-picker-label']} htmlFor="listingDate">
+            Select date
+          </label>
+          <input
+            id="listingDate"
+            type="date"
+            className={styles['list-picker-input']}
+            value={currentDateStr}
+            onChange={dateChangeHandler}
+          />
+        </div>
+        <Link className={styles['add-btn']} to="create">
+          Track food
+        </Link>
+      </div>
+      {content}
     </div>
   );
 }
